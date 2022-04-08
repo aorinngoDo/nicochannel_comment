@@ -55,8 +55,6 @@ oldest_time = re.sub(' (\d{2}:\d{2}):\d{2}$', 'T\\1:00.000Z', oldest_time)
 title = str(video_data.get('data', {}).get('video_page', {}).get('title'))
 title = title.translate(str.maketrans({'\"': '_', '\'': '_', '<': '_', '>': '_', '\\': '_', '/': '_', ':': '_', '|': '_', '?': '_', '*': '_'}))
 
-#print(oldest_time)
-
 # Get User Access Token
 headers = {'User-Agent': ua, 'Accept': 'application/json, text/plain, */*', 'Accept-Language': 'ja', 'Origin': 'https://nicochannel.jp', 'Connection': 'keep-alive', 'Referer': 'https://nicochannel.jp/', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site'}
 user_token_req = requests.get('https://nfc-api.nicochannel.jp/fc/video_pages/' + vid + '/comments_user_token', headers=headers)
@@ -95,8 +93,6 @@ while True:
 
     print(oldest_time)
     comments_req_data = json.loads(comments_req.text)
-    #print(comments_req_data)
-    #stop = input('Stopping... ')
     if len(comments_req_data) == 0:
         print('Finised!')
         f.write('</packet>\n')
@@ -106,8 +102,6 @@ while True:
     for i in comments_req_data:
         created_at = str(i['created_at'])
         unix_time_sec = str(dp.parse(created_at).timestamp()).split('.')
-        #print(unix_time_sec)
-        #stop = input('Stopping... ')
         message = str(i['message']).translate(str.maketrans({'\"': '&quot;', '\'': '&apos;', '<': '&lt;', '<': '&gt;', '&': '&amp;'}))
         playback_time = int(i['playback_time']) * 100
         sender_id = str(i['sender_id'])
