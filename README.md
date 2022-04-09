@@ -3,13 +3,13 @@ nicochannel.jp comment downloader.
 ニコニコチャンネルプラスからコメントをダウンロードし,各種ソフトで扱えるxmlファイルに変換します。
 
 ## Usage/利用方法:
-```nicochannel_comment.py/.exe VIDEO_URL```  
-動画URLを引数にして nicochannel_comment.py/.exe を実行  
+```nicochannel_comment{.py .exe}  VIDEO_URL```  
+動画URLを引数にして nicochannel_comment{.py .exe}  を実行  
   
 OR  
   
-Start nicochannel_comment.py/.exe and input video URL.  
-nicochannel_comment.py/.exe を実行すると,動画URLを尋ねられるため入力  
+Start nicochannel_comment{.py .exe} and input video URL.  
+nicochannel_comment{.py .exe}  を実行すると,動画URLを尋ねられるため入力  
 
 VIDEO_URL Example: ```https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB```
 
