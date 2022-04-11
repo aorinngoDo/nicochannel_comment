@@ -37,7 +37,7 @@ if __name__=='__main__' :
         os.chdir(output)
     elif os.path.isdir(os.path.dirname(output)) :
         os.chdir(os.path.dirname(output))
-        if output.split(".")[-1] == ".xml" :
+        if os.path.basename(output).split(".")[-1] == "xml" :
             filename = os.path.basename(output)
         else :
             filename = os.path.basename(output) + '.xml'
