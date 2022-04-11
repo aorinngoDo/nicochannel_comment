@@ -37,7 +37,6 @@ Tested on ```Windows 10 64bit   Python 3.10.2``` / ```Ubuntu 18.04.6 LTS amd64  
 ## Future plans/追加予定の機能,改良すべき点
 - [x] ~~保存先フォルダ指定~~  
 - [x] ~~保存ファイル名指定~~
-- [ ] 
 
 ## FAQ
 - 動画ダウンロード機能は?  
