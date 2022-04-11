@@ -3,26 +3,41 @@ nicochannel.jp comment downloader.
 ニコニコチャンネルプラスからコメントをダウンロードし,各種ソフトで扱えるxmlファイルに変換します。
 
 ## Usage/利用方法:
-```nicochannel_comment{.py .exe}  VIDEO_URL```  
-動画URLを引数にして nicochannel_comment{.py .exe}  を実行  
-  
-OR  
-  
-Start nicochannel_comment{.py .exe} and input video URL.  
-nicochannel_comment{.py .exe}  を実行すると,動画URLを尋ねられるため入力  
+```
+usage: nicochannel_comment.py [-h] [-o OUTPUT] [--allowbrokentimestamp] video_url
+
+nicochannel.jp comment downloader.
+
+positional arguments:
+  video_url             Video URL.
+
+optional arguments:
+  -h, --help                    show this help message and exit
+  -o OUTPUT, --output OUTPUT    Output directory / filename.
+  --allowbrokentimestamp        Save comments that may have broken timestamps. It is
+                                recommended to add this option for videos longer than
+                                8 hours.
+```  
 
 VIDEO_URL Example: ```https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB```
 
+Example 1: [D:\Videos\] にコメントファイルを保存  
+``` nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "D:\Videos\"```  
+Example 2: カレントディレクトリ下にある[Videos]ディレクトリにファイル名を[comments.xml]としてコメントを全て保存  
+``` nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "./Videos/comments.xml" --allowbrokentimestamp```  
+
 ---
-Tested on ```Windows 10 Python 3.10.2``` / ```Ubuntu 18.04.6 LTS    Python 3.7.5```
+Tested on ```Windows 10 64bit   Python 3.10.2``` / ```Ubuntu 18.04.6 LTS amd64    Python 3.7.5```
 
 ## Bugs/不具合:
 - サーバから送られるコメントファイルの一部の時間データがおかしい  
-確認できた限り,32000秒以降のコメントとして保存されているようなので無視するようにしている
+確認できた限り,32000秒以降のコメントとして保存されているようなので無視するようにしている  
+→ 20220412から ```--allowbrokentimestamp``` オプションで保存できるようにした(32000秒=約9時間以上の動画だと,正常なタイムスタンプのコメントも無視されてしまうため)
 
 ## Future plans/追加予定の機能,改良すべき点
-- [ ] 保存先フォルダ指定  
-- [ ] 保存ファイル名指定
+- [x] ~~保存先フォルダ指定~~  
+- [x] ~~保存ファイル名指定~~
+- [ ] 
 
 ## FAQ
 - 動画ダウンロード機能は?  
