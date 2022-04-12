@@ -30,8 +30,7 @@ if __name__=='__main__' :
     try :
         output = os.path.abspath(args.output)
     except TypeError as e :
-        print(e + 'ERROR! / Output path format is incorrect.')
-        exit(1)
+        output = os.getcwd()
 
     if os.path.isdir(output) :
         os.chdir(output)
