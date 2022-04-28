@@ -13,7 +13,7 @@ import argparse
 ua='Mozilla/5.0'
 
 if __name__=='__main__' :
-    parser = argparse.ArgumentParser(description='nicochannel.jp comment downloader.', add_help=True)
+    parser = argparse.ArgumentParser(description='nicochannel.jp comment(s) downloader.', add_help=True)
     parser.add_argument('video_url', help='Video URL.')
     parser.add_argument('-o', '--output', help='Output directory / filename.')
     parser.add_argument('--allowbrokentimestamp', action='store_true', help='Save comments that may have broken timestamps. It is recommended to add this option for videos longer than 8 hours.')
