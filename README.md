@@ -48,7 +48,7 @@ Tested on
 - コメントを扱えるソフトは?  
 Windowsなら [akpg tools](http://air.fem.jp/)の各種ソフトなど  
 Androidなら[ひま動ぷれいや](https://s368.web.fc2.com/)など  
-**※これらはこのツールと一切関係はありません**  
+**※これらはこのツールと一切関係ありません**  
 
 - Releasesのビルドについて  
 ～20220412_fix: Pyinstallerを利用  
