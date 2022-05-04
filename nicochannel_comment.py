@@ -119,7 +119,7 @@ while True :
     comments_req_data = json.loads(comments_req.text)
     if len(comments_req_data) == 0 :
         tree = minidom.parseString(ET.tostring(packet, 'utf-8'))
-        with open(filename,'w') as f:
+        with open(filename,'w', encoding='utf-8') as f:
             tree.writexml(f, encoding='utf-8', newl='\n', indent='')
         print('Finised!')
         sys.exit(0)

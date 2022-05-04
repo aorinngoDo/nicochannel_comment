@@ -1,5 +1,5 @@
 # nicochannel_comment
-nicochannel.jp comment downloader.  
+nicochannel.jp comment(s) downloader.  
 ニコニコチャンネルプラスからコメントをダウンロードし,各種ソフトで扱えるxmlファイルに変換します。
 
 ## Usage/利用方法:
@@ -27,7 +27,10 @@ Example 2: カレントディレクトリ下にある[Videos]ディレクトリ�
 ``` nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "./Videos/comments.xml" --allowbrokentimestamp```  
 
 ---
-Tested on ```Windows 10 64bit   Python 3.10.2``` / ```Ubuntu 18.04.6 LTS amd64    Python 3.7.5```
+Tested on  
+```Windows 10 64bit   Python 3.10.2```  
+```Ubuntu 18.04.6 LTS amd64    Python 3.7.5 (～20220412_fix)```  
+```Ubuntu 20.04.4 LTS amd64    Python 3.8.10 (20220505～)```  
 
 ## Bugs/不具合:
 - サーバから送られるコメントファイルの一部の時間データがおかしい  
@@ -47,5 +50,9 @@ Windowsなら [akpg tools](http://air.fem.jp/)の各種ソフトなど
 Androidなら[ひま動ぷれいや](https://s368.web.fc2.com/)など  
 **※これらはこのツールと一切関係はありません**  
 
+- Releasesのビルドについて  
+～20220412_fix: Pyinstallerを利用  
+20220505～:     Nuitkaを利用  
+
 - 動かない,何かおかしい,不具合や要望等がある  
-Issues/Pull requestsを利用するか,直接連絡をお願いします
+Issues/Pull requestsを利用するか,直接連絡をお願いします  
