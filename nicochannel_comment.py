@@ -9,6 +9,8 @@ import requests
 import json
 import dateutil.parser as dp
 import argparse
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
 ua='Mozilla/5.0'
 
@@ -97,46 +99,44 @@ try :
 except NameError:
     filename = title + '.xml'
 
-filename = filename.translate(str.maketrans({'\"': '_', '\'': '_', '<': '_', '>': '_', '\\': '_', '/': '_', ':': '_', '|': '_', '?': '_', '*': '_'}))
+filename = filename.translate(str.maketrans({'\"': '”', '\'': '’', '<': '＜', '>': '＞', '\\': '￥', '/': '／', ':': '：', '|': '｜', '?': '？', '*': '＊'}))
 
-try :
-    f = open(filename, 'x', encoding='UTF-8')
-except FileExistsError :
-    print('ERROR! / Comments file Exists.')
+if os.path.isfile(filename) :
+    print('ERROR! / File exists.')
     sys.exit(1)
 
-f.write('<?xml version="1.0" encoding="UTF-8"?>\n<packet>\n')
+packet = ET.Element('packet')
 
 while True :
     comments_req = requests.post('https://comm-api.sheeta.com/messages.history?limit=120&oldest=' + oldest_time + '&sort_direction=asc', headers=headers, json=post_json)
     try :
         comments_req_response = comments_req.raise_for_status()
     except Exception :
-        print('ERROR! / Could not get comments file! Deleting the file...')
-        f.close()
-        os.remove(title + '.xml')
+        print('ERROR! / Could not get comments file.')
         sys.exit(1)
 
     print(oldest_time)
     comments_req_data = json.loads(comments_req.text)
     if len(comments_req_data) == 0 :
+        tree = minidom.parseString(ET.tostring(packet, 'utf-8'))
+        with open(filename,'w') as f:
+            tree.writexml(f, encoding='utf-8', newl='\n', indent='')
         print('Finised!')
-        f.write('</packet>\n')
-        f.close()
         sys.exit(0)
 
     for i in comments_req_data :
         created_at = str(i['created_at'])
         unix_time_sec = str(dp.parse(created_at).timestamp()).split('.')
-        message = str(i['message']).translate(str.maketrans({'\"': '&quot;', '\'': '&apos;', '<': '&lt;', '<': '&gt;', '&': '&amp;'}))
+        message = str(i['message'])
         playback_time = int(i['playback_time']) * 100
         sender_id = str(i['sender_id'])
-        nickname = str(i['nickname']).translate(str.maketrans({'\"': '&quot;', '\'': '&apos;', '<': '&lt;', '<': '&gt;', '&': '&amp;'}))
+        nickname = str(i['nickname'])
 
         # For broken time data
         if args.allowbrokentimestamp :
-            f.write('<chat thread=\"' + comment_group_id + '\" vpos=\"' + str(playback_time) + '\" date=\"' + str(unix_time_sec[0]) + '\" date_usec=\"' + str(unix_time_sec[1]) + '\" user_id=\"' + sender_id + '\" name=\"' + nickname + '\">' + message + '</chat>\n')
-        else :
-            if playback_time < 3200000 :
-                f.write('<chat thread=\"' + comment_group_id + '\" vpos=\"' + str(playback_time) + '\" date=\"' + str(unix_time_sec[0]) + '\" date_usec=\"' + str(unix_time_sec[1]) + '\" user_id=\"' + sender_id + '\" name=\"' + nickname + '\">' + message + '</chat>\n')
+            ET.SubElement(packet, 'chat', {'thread': comment_group_id, 'vpos': str(playback_time), 'date': str(unix_time_sec[0]), 'user_id': sender_id, 'name': nickname}).text = message
+
+        elif playback_time < 3200000 :
+            ET.SubElement(packet, 'chat', {'thread': comment_group_id, 'vpos': str(playback_time), 'date': str(unix_time_sec[0]), 'user_id': sender_id, 'name': nickname}).text = message
+            
     oldest_time = created_at
