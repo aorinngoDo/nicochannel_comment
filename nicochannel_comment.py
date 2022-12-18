@@ -11,6 +11,7 @@ import dateutil.parser as dp
 import argparse
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+from sanitize_filename import sanitize
 
 ua='Mozilla/5.0'
 
@@ -100,6 +101,7 @@ except NameError:
     filename = title + '.xml'
 
 filename = filename.translate(str.maketrans({'\"': '”', '\'': '’', '<': '＜', '>': '＞', '\\': '￥', '/': '／', ':': '：', '|': '｜', '?': '？', '*': '＊'}))
+filename = sanitize(filename)
 
 if os.path.isfile(filename) :
     print('ERROR! / File exists.')
@@ -117,7 +119,7 @@ while True :
 
     print(oldest_time)
     comments_req_data = json.loads(comments_req.text)
-    if len(comments_req_data) == 0 :
+    if len(comments_req_data) == 0 or len(comments_req_data) == 1 :
         tree = minidom.parseString(ET.tostring(packet, 'utf-8'))
         with open(filename,'w', encoding='utf-8') as f:
             tree.writexml(f, encoding='utf-8', newl='\n', indent='')
