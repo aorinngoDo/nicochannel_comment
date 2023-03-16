@@ -7,6 +7,7 @@ import os
 import re
 import requests
 import json
+import datetime
 import dateutil.parser as dp
 import argparse
 import xml.etree.ElementTree as ET
@@ -93,8 +94,10 @@ if __name__=='__main__' :
         sys.exit(1)
 
 # Get Video Info
-headers = {'User-Agent': ua, 'Origin': 'https://nicochannel.jp', 'Accept': 'application/json, text/plain, */*', 'Accept-Language': 'ja', 'Connection': 'keep-alive', 'Referer': 'https://nicochannel.jp/', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site'}
+headers = {'User-Agent': ua, 'Accept': 'application/json, text/plain, */*', 'Accept-Language': 'ja', 
+'Accept-Encoding': 'gzip, deflate, br', 'fc_site_id': '105', 'fc_use_device': 'null', 'Origin': 'https://nicochannel.jp', 'DNT': '1', 'Connection': 'keep-alive', 'Referer': 'https://nicochannel.jp/', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'same-site', 'TE': 'trailers'}
 video_data_req = requests.get('https://nfc-api.nicochannel.jp/fc/video_pages/' + vid, headers=headers)
+
 try :
     video_data_req_response = video_data_req.raise_for_status()
 except Exception as e :
@@ -106,8 +109,6 @@ comment_group_id = str(video_data.get('data', {}).get('video_page', {}).get('vid
 if comment_group_id == 'None' :
     print('ERROR! / Could not get comment group information.')
     sys.exit(1)
-
-print(comment_group_id)
 
 oldest_time = str(video_data.get('data', {}).get('video_page', {}).get('live_started_at'))
 if oldest_time == 'None' :
@@ -153,6 +154,10 @@ if os.path.isfile(filename) :
 
 packet = ET.Element('packet')
 
+print('Start saving comments ...')
+print('Title:' + title)
+print('Comment ID: ' + comment_group_id)
+
 while True :
     comments_req = requests.post('https://comm-api.sheeta.com/messages.history?limit=120&oldest=' + oldest_time + '&sort_direction=asc', headers=headers, json=post_json)
     try :
@@ -184,5 +189,6 @@ while True :
 
         elif playback_time < 3200000 :
             ET.SubElement(packet, 'chat', {'thread': comment_group_id, 'vpos': str(playback_time), 'date': str(unix_time_sec[0]), 'user_id': sender_id, 'name': nickname}).text = message
-            
-    oldest_time = created_at
+
+    oldest_time_datetime = datetime.datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S.%fZ') + datetime.timedelta(milliseconds=1)
+    oldest_time = oldest_time_datetime.isoformat()[:-3] + 'Z'
