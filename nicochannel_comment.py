@@ -172,7 +172,7 @@ while True :
         tree = minidom.parseString(ET.tostring(packet, 'utf-8'))
         with open(filename,'w', encoding='utf-8') as f:
             tree.writexml(f, encoding='utf-8', newl='\n', indent='')
-        print('Finised!')
+        print('Finished!')
         sys.exit(0)
 
     for i in comments_req_data :
