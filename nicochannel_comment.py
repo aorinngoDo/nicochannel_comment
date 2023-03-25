@@ -12,6 +12,11 @@ import dateutil.parser as dp
 import argparse
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+import unicodedata
+
+# Delete Control Character
+def remove_control_characters(s):
+    return "".join(ch for ch in s if unicodedata.category(ch)[0]!="C")
 
 # Safe Filenames
 _invalid = (
@@ -177,18 +182,18 @@ while True :
 
     for i in comments_req_data :
         created_at = str(i['created_at'])
-        unix_time_sec = str(dp.parse(created_at).timestamp()).split('.')
-        message = str(i['message'])
-        playback_time = int(i['playback_time']) * 100
+        unix_time_sec = str(dp.parse(created_at).timestamp()).split('.')[0]
+        message = remove_control_characters(str(i['message']))
+        playback_time = (int(i['playback_time']) * 100)
         sender_id = str(i['sender_id'])
-        nickname = str(i['nickname'])
+        nickname = remove_control_characters(str(i['nickname']))
 
         # For broken time data
         if args.allowbrokentimestamp :
-            ET.SubElement(packet, 'chat', {'thread': comment_group_id, 'vpos': str(playback_time), 'date': str(unix_time_sec[0]), 'user_id': sender_id, 'name': nickname}).text = message
+            ET.SubElement(packet, 'chat', {'thread': comment_group_id, 'vpos': str(playback_time), 'date': unix_time_sec, 'user_id': sender_id, 'name': nickname}).text = message
 
         elif playback_time < 3200000 :
-            ET.SubElement(packet, 'chat', {'thread': comment_group_id, 'vpos': str(playback_time), 'date': str(unix_time_sec[0]), 'user_id': sender_id, 'name': nickname}).text = message
+            ET.SubElement(packet, 'chat', {'thread': comment_group_id, 'vpos': str(playback_time), 'date': unix_time_sec, 'user_id': sender_id, 'name': nickname}).text = message
 
     oldest_time_datetime = datetime.datetime.strptime(created_at, '%Y-%m-%dT%H:%M:%S.%fZ') + datetime.timedelta(milliseconds=1)
     oldest_time = oldest_time_datetime.isoformat()[:-3] + 'Z'
