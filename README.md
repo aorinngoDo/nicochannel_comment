@@ -19,7 +19,7 @@ optional arguments:
                                 8 hours.
 ```  
 
-VIDEO_URL Example: ```https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB```
+video_url Example: ```https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB```
 
 Example 1: [D:\Videos\] にコメントファイルを保存  
 ``` nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "D:\Videos\"```  
@@ -28,9 +28,8 @@ Example 2: カレントディレクトリ下にある[Videos]ディレクトリ�
 
 ---
 Tested on  
-```Windows 10 64bit   Python 3.10.2```  
-```Ubuntu 18.04.6 LTS amd64    Python 3.7.5 (～20220412_fix)```  
-```Ubuntu 20.04.4 LTS amd64    Python 3.8.10 (20220505～)```  
+```Windows 10 64bit   Python 3.10.8```    
+```Ubuntu 22.04.2 LTS amd64    Python 3.10.6```  
 
 ## Bugs/不具合:
 - サーバから送られるコメントファイルの一部の時間データがおかしい  
@@ -53,6 +52,9 @@ Androidなら[ひま動ぷれいや](https://s368.web.fc2.com/)など
 - Releasesのビルドについて  
 ～20220412_fix: Pyinstallerを利用  
 20220505～:     Nuitkaを利用  
+```shell-session
+$ python -m nuitka --follow-imports --onefile nicochannel_comment.py
+```
 
 - 動かない,何かおかしい,不具合や要望等がある  
 Issues/Pull requestsを利用するか,直接連絡をお願いします  
