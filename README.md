@@ -1,22 +1,38 @@
 # nicochannel_comment
+
 nicochannel.jp comment(s) downloader.  
 ニコニコチャンネルプラスからコメントをダウンロードし,各種ソフトで扱えるxmlファイルに変換します。
 
 ## Usage/利用方法:
-```
-usage: nicochannel_comment.py [-h] [-o OUTPUT] [--allowbrokentimestamp] video_url
 
-nicochannel.jp comment downloader.
+### 対話形式での操作、チャンネルの一括コメント保存に対応しました!
+
+- オプションを指定せずとも利用しやすくなりました 
+
+![image](https://github.com/aorinngoDo/nicochannel_comment/assets/90427309/906bb073-5e56-4dc5-a0d2-786919b5b998)
+
+![image](https://github.com/aorinngoDo/nicochannel_comment/assets/90427309/59c4b4b0-cb52-4816-8df7-45325395cdd0)
+
+![image](https://github.com/aorinngoDo/nicochannel_comment/assets/90427309/eac4a038-feaa-45a9-aa5f-ce4a7d45e5fb)
+
+![image](https://github.com/aorinngoDo/nicochannel_comment/assets/90427309/b4b5f296-935e-4de9-990e-e719c6c93841)
+
+```
+usage: nicochannel_comment.py [-h] [-v] [-o OUTPUT] [--allow-broken-timestamp] [nico_url]
+
+nicochannel.jp comment(s) downloader.
 
 positional arguments:
-  video_url             Video URL.
+  nico_url              Video URL or Channel URL.
 
-optional arguments:
-  -h, --help                    show this help message and exit
-  -o OUTPUT, --output OUTPUT    Output directory / filename.
-  --allowbrokentimestamp        Save comments that may have broken timestamps. It is
-                                recommended to add this option for videos longer than
-                                8 hours.
+options:
+  -h, --help            show this help message and exit
+  -v, --verbose         Verbose log output
+  -o OUTPUT, --output OUTPUT
+                        Output directory / filename.
+  --allow-broken-timestamp
+                        Save comments that may have broken timestamps. It is recommended to add this option for videos       
+                        longer than 8 hours.
 ```  
 
 video_url Example: ```https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB```
@@ -26,21 +42,20 @@ Example 1: [D:\Videos\] にコメントファイルを保存
 Example 2: カレントディレクトリ下にある[Videos]ディレクトリにファイル名を[comments.xml]としてコメントを全て保存  
 ``` nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "./Videos/comments.xml" --allowbrokentimestamp```  
 
+
 ---
 Tested on  
-```Windows 10 64bit   Python 3.10.8```    
+```Windows 11 64bit   Python 3.11.4```    
 ```Ubuntu 22.04.2 LTS amd64    Python 3.10.6```  
 
 ## Bugs/不具合:
+
 - サーバから送られるコメントファイルの一部の時間データがおかしい  
 確認できた限り,32000秒以降のコメントとして保存されているようなので無視するようにしている  
-→ 20220412から ```--allowbrokentimestamp``` オプションで保存できるようにした(32000秒=約9時間以上の動画だと,正常なタイムスタンプのコメントも無視されてしまうため)
-
-## Future plans/追加予定の機能,改良すべき点
-- [x] ~~保存先フォルダ指定~~  
-- [x] ~~保存ファイル名指定~~
+→ 20220412から ```--allow-broken-timestamp``` オプションで保存できるようにした(32000秒=約9時間以上の動画だと,正常なタイムスタンプのコメントも無視されてしまうため)
 
 ## FAQ
+
 - 動画ダウンロード機能は?  
 追加予定はありません  
 
