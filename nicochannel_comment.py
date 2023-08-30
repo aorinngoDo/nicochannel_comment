@@ -493,7 +493,7 @@ if __name__ == "__main__":
     for video_id in videos_id_list:
         video_info = get_video_info(video_id)
 
-        default_output_dir = os.path.dirname(os.path.abspath(__file__))
+        default_output_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
         default_output_filename = video_info.get('data', {}).get('video_page', {}).get('title', '') + '.xml'
         default_output_filename = check_output_filename(default_output_filename)
 
@@ -505,8 +505,11 @@ if __name__ == "__main__":
                 output_filename = os.path.join(default_output_dir, default_output_filename)
         else:
             output_filename = output_filepath_input_dialog(os.path.join(default_output_dir, default_output_filename))
+            if output_filename is None:
+                logger.info('処理をキャンセルします.')
+                sys.exit(0)
 
-        if output_filename is None:
+        if output_filename is None or output_filename == '':
             logger.warning('出力先ファイルパスが入力されていないため, デフォルト値を使用します.')
             output_filename = os.path.join(default_output_dir, default_output_filename)
         elif check_output_dir(output_filename):
