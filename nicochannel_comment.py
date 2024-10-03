@@ -329,11 +329,11 @@ def get_all_comments(user_token: str, comments_group_id: str) -> list:
         comments_data = get_comments(user_token, comments_group_id, oldest_time)
         if comments_data is None:
             return None
+        if len(comments_data) == 0:
+            break
         comments.extend(comments_data)
         logger.debug(f'{len(comments_data)} コメントを取得しました.')
         logger.info(f'現在 {len(comments)} 個のコメントを取得済み')
-        if len(comments_data) < 120:
-            break
         oldest_time = comments_data[-1]['created_at']
         oldest_time_dt = datetime.strptime(oldest_time, "%Y-%m-%dT%H:%M:%S.%fZ")
         new_oldest_time_dt = oldest_time_dt + timedelta(milliseconds=1)
