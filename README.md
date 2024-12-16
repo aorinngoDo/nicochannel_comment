@@ -1,13 +1,13 @@
 # nicochannel_comment
 
-nicochannel.jp comment(s) downloader.  
-ニコニコチャンネルプラスからコメントをダウンロードし,各種ソフトで扱えるxmlファイルに変換します。
+nicochannel.jp (and sheeta) comment(s) downloader.  
+ニコニコチャンネルプラスなど sheeta 利用サイトからコメントをダウンロードし, 各種ソフトで扱えるxmlファイルに変換します.
 
-## Usage/利用方法:
+## Usage/利用方法
 
-### 対話形式での操作、チャンネルの一括コメント保存に対応しました!
+### 対話形式での操作
 
-- オプションを指定せずとも利用しやすくなりました 
+- オプションを指定せずとも利用しやすくなりました
 
 ![image](https://github.com/aorinngoDo/nicochannel_comment/assets/90427309/906bb073-5e56-4dc5-a0d2-786919b5b998)
 
@@ -17,8 +17,12 @@ nicochannel.jp comment(s) downloader.
 
 ![image](https://github.com/aorinngoDo/nicochannel_comment/assets/90427309/b4b5f296-935e-4de9-990e-e719c6c93841)
 
+### 非対話形式での操作
+
+- `-b` オプションを指定することで, 対話画面をスキップできます. URLは引数で指定する必要があります. チャンネルURLを入力する場合に便利
+
 ```
-usage: nicochannel_comment.py [-h] [-v] [-o OUTPUT] [--allow-broken-timestamp] [nico_url]
+usage: nicochannel_comment.py [-h] [-v] [-o OUTPUT] [--allow-broken-timestamp] [-b] [nico_url]
 
 nicochannel.jp comment(s) downloader.
 
@@ -31,24 +35,24 @@ options:
   -o OUTPUT, --output OUTPUT
                         Output directory / filename.
   --allow-broken-timestamp
-                        Save comments that may have broken timestamps. It is recommended to add this option for videos       
-                        longer than 8 hours.
-```  
+                        Save comments that may have broken timestamps. It is recommended to add this option for videos longer than 8 hours.
+  -b, --batch           Non-interactive mode. If no output is specified in the argument, the default value is used.
+```
 
-video_url Example: ```https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB```
+nico_url Example: ```https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB```
 
 Example 1: [D:\Videos\] にコメントファイルを保存  
-``` nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "D:\Videos\"```  
+```nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "D:\Videos\"```
 Example 2: カレントディレクトリ下にある[Videos]ディレクトリにファイル名を[comments.xml]としてコメントを全て保存  
-``` nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "./Videos/comments.xml" --allowbrokentimestamp```  
-
+```nicochannel_comment.py https://nicochannel.jp/yojyo-bergamo/video/smvm4YYLRKyMreUq4sfjtawB -o "./Videos/comments.xml" --allowbrokentimestamp```
 
 ---
-Tested on  
-```Windows 11 64bit   Python 3.11.4```    
-```Ubuntu 22.04.2 LTS amd64    Python 3.10.6```  
+Requirements:
 
-## Bugs/不具合:
+- Python 3.9 or later
+- Check requirements.txt
+
+## Bugs/不具合
 
 - サーバから送られるコメントファイルの一部の時間データがおかしい  
 確認できた限り,32000秒以降のコメントとして保存されているようなので無視するようにしている  
@@ -67,6 +71,7 @@ Androidなら[ひま動ぷれいや](https://s368.web.fc2.com/)など
 - Releasesのビルドについて  
 ～20220412_fix: Pyinstallerを利用  
 20220505～:     Nuitkaを利用  
+
 ```shell-session
 $ python -m nuitka --follow-imports --onefile nicochannel_comment.py
 ```
