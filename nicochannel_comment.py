@@ -73,7 +73,7 @@ class SheetaVideoCommentGetter(sheeta_utils.SheetaVideo):
             comments_length_per_page = get_comments_single_page(oldest_time)
             if comments_length_per_page <= 1:
                 break
-            oldest_time = self.comment_dumps[-1].get("playback_time")
+            oldest_time = self.comment_dumps[-1].get("playback_time") if oldest_time != self.comment_dumps[-1].get("playback_time") else int(self.comment_dumps[-1].get("playback_time")) + 1
 
 
         self.comment_dumps = get_unique_list(self.comment_dumps)
