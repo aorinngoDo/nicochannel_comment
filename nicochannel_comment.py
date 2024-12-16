@@ -12,6 +12,77 @@ import dateutil.parser as dp
 import prompt_toolkit as pt
 import requests
 from pathvalidate import sanitize_filename
+from prompt_toolkit.completion import PathCompleter
+
+import sheeta_utils
+
+
+class SheetaVideoCommentGetter(sheeta_utils.SheetaVideo):
+
+    def __init__(self, url: str):
+        super().__init__(url)
+        self.comments_user_token = None
+        self.comment_dumps = []
+
+    def get_comments_user_token(self):
+        if not self.video_info_dump:
+            self.get_video_info()
+        try:
+            user_token_request = requests.get(f'{self.site_settings.get("api_base_url")}/video_pages/{self.video_id}/comments_user_token', headers=self.base_headers, timeout=20)
+            user_token_request.raise_for_status()
+            user_token_dump = user_token_request.json()
+            self.comments_user_token = user_token_dump.get("data", {}).get("access_token")
+            if not self.comments_user_token and not isinstance(self.comments_user_token, str):
+                raise ValueError("Failed to get comments user token")
+        except Exception as e:
+            raise ValueError(f"Failed to get comments user token: {e}")
+
+    def get_all_comments_list(self):
+
+        def get_comments_single_page(oldest_playback_time):
+            _query = {
+                "oldest_playback_time": oldest_playback_time,
+                "sort_direction": "asc",
+                "limit": 500,
+                "inclusive": "true"
+            }
+
+            _payload_json = {
+                "token": self.comments_user_token,
+                "group_id": self.video_info_dump.get("data", {}).get("video_page", {}).get("video_comment_setting", {}).get("comment_group_id")
+            }
+
+            try:
+                comments_request = requests.post(f"https://comm-api.sheeta.com/messages.history", json=_payload_json, headers=self.base_headers, params=_query, timeout=20)
+                comments_request.raise_for_status()
+                comments_dump = comments_request.json()
+                self.comment_dumps.extend(comments_dump)
+                return len(comments_dump)
+            except Exception as e:
+                raise ValueError(f"Failed to get comments: {e}")
+
+        def get_unique_list(_list):
+            seen = []
+            return [x for x in _list if x not in seen and not seen.append(x)]
+
+        if not self.comments_user_token:
+            self.get_comments_user_token()
+
+        oldest_time = 0
+        while True:
+            comments_length_per_page = get_comments_single_page(oldest_time)
+            if comments_length_per_page <= 1:
+                break
+            oldest_time = self.comment_dumps[-1].get("playback_time")
+
+
+        self.comment_dumps = get_unique_list(self.comment_dumps)
+        # print(f"Total comments: {len(self.comment_dumps)=} / {type(self.comment_dumps)=}")
+
+
+class SheetaChannelCommentGetter(sheeta_utils.SheetaChannel):
+    def __init__(self, url: str):
+        super().__init__(url)
 
 
 def setup_logger(verbose=False) -> logging.Logger :
@@ -41,45 +112,10 @@ def parse_args() -> tuple[argparse.Namespace, logging.Logger]:
     parser.add_argument('-v','--verbose', action='store_true', help="Verbose log output")
     parser.add_argument('-o', '--output', help='Output directory / filename.')
     parser.add_argument('--allow-broken-timestamp', action='store_true', help='Save comments that may have broken timestamps. It is recommended to add this option for videos longer than 8 hours.')
+    parser.add_argument('-b', '--batch', action='store_true', help='Non-interactive mode. If no output is specified in the argument, the default value is used.')
     args = parser.parse_args()
     logger = setup_logger(args.verbose)
     return args, logger
-
-def check_video_url(video_url: str) -> str:
-    """動画URLの正当性をチェックします.
-
-    Args:
-        video_url (str): ニコニコチャンネルプラスの動画URL
-
-    Returns:
-        str: 動画URLの動画ID
-    """
-    video_url_match = re.search(r'nicochannel.jp/[^/]+/video/([0-9A-Za-z]+)$', video_url)
-
-    if video_url_match:
-        video_id = video_url_match.group(1)
-    else :
-        logger.debug(f'{video_url=} は正しいフォーマットではないようです.')
-        return False
-
-    return str(video_id)
-
-def check_channel_url(channel_url: str) -> str:
-    """チャンネルURLの正当性をチェックします.
-
-    Args:
-        channel_url (str): ニコニコチャンネルプラスのチャンネルURL
-
-    Returns:
-        str: チャンネルURLのチャンネルID
-    """
-    channel_url_match = re.search(r'nicochannel.jp/([0-9A-Za-z\-]+)/*$', channel_url)
-    if channel_url_match:
-        channel_id = channel_url_match.group(1)
-    else :
-        logger.debug(f'{channel_url=} は正しいフォーマットではないようです.')
-        return False
-    return str(channel_id)
 
 def check_output_dir(output_dir: str) -> str:
     """出力先ディレクトリの正当性をチェックします.
@@ -94,15 +130,15 @@ def check_output_dir(output_dir: str) -> str:
         output_dir = os.path.abspath(output_dir)
     except TypeError as e:
         logger.debug(e)
-        return None
+        return ''
     logger.debug(f'{output_dir=}')
     if os.path.isdir(output_dir):
         return output_dir
     else:
         logger.debug(f'{output_dir=} はディレクトリではありません.')
-        return None
+        return ''
 
-def check_output_filename(output_filename: str) -> str:
+def validate_output_filename(output_filename: str) -> str:
     """出力ファイル名の正当性をチェックします.
 
     Args:
@@ -132,213 +168,6 @@ def exists_filepath(output_filepath : str) -> bool:
         bool: 出力先ファイルパスが存在するか否か
     """
     return os.path.exists(output_filepath)
-
-def get_channel_fc_id(channel_id: str) -> str:
-    """チャンネルIDからチャンネルのfc_idを取得します.
-
-    Args:
-        channel_id (str): ニコニコチャンネルプラスのチャンネルID
-
-    Returns:
-        str: チャンネルのfc_id
-    """
-    headers = {
-        'authority': 'nfc-api.nicochannel.jp',
-        'fc_use_device': 'null',
-        'origin': 'https://nicochannel.jp',
-        'referer': 'https://nicochannel.jp/',
-        'user-agent': USERAGENT,
-    }
-    all_channel_info_resp = requests.get(f'https://nfc-api.nicochannel.jp/fc/content_providers/channels', headers=headers)
-    try:
-        all_channel_info_resp.raise_for_status()
-        all_channel_info = all_channel_info_resp.json()
-    except Exception as e:
-        logger.error(f'チャンネル一覧を取得できませんでした. {e}')
-        return None
-    for channel_info in all_channel_info.get('data', {}).get('content_providers', []):
-        if channel_info.get('domain') == f'https://nicochannel.jp/{channel_id}':
-            return str(channel_info.get('fanclub_site', {}).get('id'))
-    logger.error(f'チャンネルID {channel_id} が見つかりませんでした.')
-    return None
-
-def get_channel_videos_page(fc_id: str, page=1) -> list:
-    """_summary_
-
-    Args:
-        fc_id (str): チャンネルのfc_id
-        page (int, optional): 動画一覧のページ数. デフォルト値は 1.
-
-    Returns:
-        list: 動画一覧の情報
-    """
-    headers = {
-        'authority': 'nfc-api.nicochannel.jp',
-        'fc_use_device': 'null',
-        'origin': 'https://nicochannel.jp',
-        'referer': 'https://nicochannel.jp/',
-        'user-agent': USERAGENT,
-    }
-
-    params = (
-        ('page', page),
-        ('per_page', '100'),
-        ('sort', '-display_date'),
-    )
-
-    videos_resp = requests.get(f'https://nfc-api.nicochannel.jp/fc/fanclub_sites/{fc_id}/video_pages', headers=headers, params=params)
-    try:
-        videos_resp.raise_for_status()
-        videos_data = videos_resp.json()
-    except Exception as e:
-        logger.error(f'チャンネル内の動画一覧を取得できませんでした. {e}')
-        return None
-    videos_info_list = videos_data.get('data', {}).get('video_pages', {}).get('list', [])
-    return videos_info_list
-
-def get_channel_videos_list(channel_id: str) -> list:
-    """チャンネルIDからチャンネル内の動画一覧を取得します.
-
-    Args:
-        channel_id (str): ニコニコチャンネルプラスのチャンネルID
-
-    Returns:
-        list: 動画一覧の情報
-    """
-    fc_id = get_channel_fc_id(channel_id)
-    if fc_id is None:
-        return None
-    videos_info_list = get_channel_videos_page(fc_id)
-    return videos_info_list
-
-def get_video_info(video_id: str) -> dict:
-    """動画IDから動画情報を取得します.
-
-    Args:
-        video_id (str): ニコニコチャンネルプラスの動画ID
-
-    Returns:
-        dict: 動画情報
-    """
-    headers = {
-        'authority': 'nfc-api.nicochannel.jp',
-        'fc_use_device': 'null',
-        'origin': 'https://nicochannel.jp',
-        'referer': 'https://nicochannel.jp/',
-        'user-agent': USERAGENT,
-    }
-    video_info_resp = requests.get(f'https://nfc-api.nicochannel.jp/fc/video_pages/{video_id}', headers=headers)
-    try:
-        video_info_resp.raise_for_status()
-        video_info = video_info_resp.json()
-    except Exception as e:
-        logger.error(f'動画情報を取得できませんでした. {e}')
-        return None
-    video_title = video_info.get('data', {}).get('video_page', {}).get('title')
-    if video_title is None:
-        logger.error(f'{video_id=} の動画タイトルを取得できませんでした.')
-        return None
-    logger.info(f'{video_title} の情報を取得しました.')
-    return video_info
-
-def get_user_token(video_id: str) -> str:
-    """動画IDからアクセストークンを取得します.
-
-    Args:
-        video_id (str): ニコニコチャンネルプラスの動画ID
-
-    Returns:
-        str: アクセストークン文字列
-    """
-    headers = {
-        'authority': 'nfc-api.nicochannel.jp',
-        'fc_use_device': 'null',
-        'origin': 'https://nicochannel.jp',
-        'referer': 'https://nicochannel.jp/',
-        'user-agent': USERAGENT,
-    }
-    user_token_resp = requests.get(f'https://nfc-api.nicochannel.jp/fc/video_pages/{video_id}/comments_user_token', headers=headers)
-    try:
-        user_token_resp.raise_for_status()
-        user_token_info = user_token_resp.json()
-    except Exception as e:
-        logger.error(f'アクセストークンを取得できませんでした. {e}')
-        return None
-
-    access_token = user_token_info.get('data', {}).get('access_token')
-    if access_token is None:
-        logger.error('アクセストークンを正しく取得できませんでした.')
-        return None
-    return access_token
-
-def get_comments(user_token: str, comments_group_id: str, oldest_time: str) -> list:
-    """指定範囲のコメントを取得します.
-
-    Args:
-        user_token (str): アクセストークン文字列
-        comments_group_id (str): コメントのグループID
-        oldest_time (str): 取得するコメントの最古の時間
-
-    Returns:
-        list: コメントのリスト
-    """
-    query = {
-        "oldest": oldest_time,
-        "sort_direction": "asc",
-        "limit": "120",
-        "inclusive": "true"
-    }
-
-    payload_json = {
-        "token": user_token,
-        "group_id": comments_group_id
-    }
-
-    headers = {
-        "authority": "comm-api.sheeta.com",
-        "content-type": "application/json",
-        "fc_use_device": "null",
-        "origin": "https://nicochannel.jp",
-        "referer": "https://nicochannel.jp/",
-        "user-agent": USERAGENT
-    }
-
-    comments_resp = requests.post('https://comm-api.sheeta.com/messages.history', json=payload_json, headers=headers, params=query)
-    try:
-        comments_resp.raise_for_status()
-        comments_data = comments_resp.json()
-    except Exception as e:
-        logger.error(f'コメント取得でエラーが発生しました. {e}')
-        return None
-    return comments_data
-
-def get_all_comments(user_token: str, comments_group_id: str) -> list:
-    """全てのコメントを取得します.
-
-    Args:
-        user_token (str): アクセストークン文字列
-        comments_group_id (str): コメントのグループID
-
-    Returns:
-        list: 全コメントのリスト
-    """
-    comments = []
-    oldest_time = 0
-    while True:
-        logger.debug(f'{oldest_time=} からコメントを取得します.')
-        comments_data = get_comments(user_token, comments_group_id, oldest_time)
-        if comments_data is None:
-            return None
-        comments.extend(comments_data)
-        logger.debug(f'{len(comments_data)} コメントを取得しました.')
-        logger.info(f'現在 {len(comments)} 個のコメントを取得済み')
-        if len(comments_data) < 120:
-            break
-        oldest_time = comments_data[-1]['created_at']
-        oldest_time_dt = datetime.strptime(oldest_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-        new_oldest_time_dt = oldest_time_dt + timedelta(milliseconds=1)
-        oldest_time = new_oldest_time_dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
-    return comments
 
 def remove_control_characters(_s: str) -> str:
     """制御文字を削除します.
@@ -374,8 +203,8 @@ def output_filepath_input_dialog(filepath=None) -> str:
     output_filepath = pt.shortcuts.input_dialog(
         title='出力先ファイルパス',
         text='出力先ファイルパスを入力してください. 上下キーで補完できます.',
-        completer=pt.completion.PathCompleter(only_directories=True),
-        default=(filepath if filepath else '')
+        completer=PathCompleter(only_directories=True),
+        default=(filepath if filepath else ''),
         ).run()
     return output_filepath
 
@@ -388,8 +217,6 @@ def url_input_dialog() -> str:
     url = pt.shortcuts.input_dialog(
         title='URLを入力',
         text='ニコニコチャンネルプラスのチャンネルURL もしくは 動画URL').run()
-    if url is None or url == '':
-        return None
     return str(url)
 
 def download_checkbox_dialog(video_list: list) -> list:
@@ -404,9 +231,9 @@ def download_checkbox_dialog(video_list: list) -> list:
     result = pt.shortcuts.checkboxlist_dialog(
         title='ダウンロードする動画を選択',
         text='コメントをダウンロードする動画を選択してください.',
-        values=[(video.get("content_code"), video.get("title")) for video in video_list]
+        values=video_list,
         ).run()
-    return result
+    return [] if result is None else result
 
 def comments_to_tree(comments_list: list, comment_group_id: str) -> ET.Element:
     """コメントのリストをXMLツリーに変換します.
@@ -457,65 +284,81 @@ def comments_file_save(packet: ET.Element, filename: str) -> None:
         tree.writexml(f, encoding='utf-8', newl='\n', indent='')
     logger.info(f'{filename} にコメントを保存しました.')
 
+
+
+
 if __name__ == "__main__":
     USERAGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 
     args, logger = parse_args()
 
-    if args.nico_url is None:
+    if args.nico_url is None and not args.batch:
         nico_url = url_input_dialog()
-        if nico_url is None:
+        if nico_url is None or nico_url == '':
             logger.error('URLが入力されませんでした.')
             sys.exit(1)
+    elif args.nico_url is None and args.batch:
+        logger.error('URLが指定されていません.')
+        sys.exit(1)
     else:
-        nico_url = args.nico_url
+        nico_url = str(args.nico_url)
 
-    channel_id = check_channel_url(nico_url)
-    video_id = check_video_url(nico_url)
 
-    if channel_id:
-        videos_info_list = get_channel_videos_list(channel_id)
-        channel_all_download = all_download_confirm_dialog()
-        if channel_all_download:
-            videos_id_list = [video.get('content_code') for video in videos_info_list]
-        else:
-            videos_id_list = download_checkbox_dialog(videos_info_list)
-    elif video_id:
-        videos_id_list = [video_id]
+    sheeta_obj = sheeta_utils.utils.get_sheeta_class(nico_url)
+    if type(sheeta_obj) == sheeta_utils.SheetaVideo:
+        video_obj_list = [SheetaVideoCommentGetter(nico_url)]
+    elif type(sheeta_obj) == sheeta_utils.SheetaChannel:
+        sheeta_obj = SheetaChannelCommentGetter(nico_url)
+        sheeta_obj.get_videos_list()
+
+        video_obj_list = [SheetaVideoCommentGetter(f'https://{sheeta_obj.base_domain}/{sheeta_obj.channel_id + "/" if sheeta_obj.channel_id else "" }video/{video_dump.get("content_code")}') for video_dump in sheeta_obj.video_dumps]
+
+        if not args.batch and not all_download_confirm_dialog():
+            video_list_for_dialog = [
+                (
+                    f'https://{sheeta_obj.base_domain}/{sheeta_obj.channel_id + "/" if sheeta_obj.channel_id else "" }video/{video_dump.get("content_code")}',
+                    f'{video_dump.get("title")} ({video_dump.get("display_date")[:10]})',
+                )
+                for video_dump in sheeta_obj.video_dumps
+            ]
+            video_obj_list = [SheetaVideoCommentGetter(video_item) for video_item in download_checkbox_dialog(video_list_for_dialog)]
     else:
-        logger.error(f'{nico_url=} は正しいURLフォーマットではないようです.')
+        logger.error(f'{nico_url=} は非対応のURLの可能性があります.')
         sys.exit(1)
 
-    if videos_id_list is None:
-        logger.error('ダウンロード対象が指定されていないようです.')
-        sys.exit(1)
+    for video_obj in video_obj_list:
+        video_obj.get_video_info()
 
-    for video_id in videos_id_list:
-        video_info = get_video_info(video_id)
-
-        default_output_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        default_output_filename = video_info.get('data', {}).get('video_page', {}).get('title', '') + '.xml'
-        default_output_filename = check_output_filename(default_output_filename)
+        default_output_dir = os.getcwd()
+        default_output_filename = validate_output_filename(video_obj.video_info_dump.get('data', {}).get('video_page', {}).get('title'))
 
         if args.output:
             try:
-                output_filename = os.path.abspath(args.output)
+                replace_dict = video_obj.video_info_dump.get('data', {}).get('video_page', {})
+                replace_dict = {k: validate_output_filename(v) for k, v in replace_dict.items() if isinstance(v, str)} | {k: datetime.strptime(f"{v} +00:00", '%Y-%m-%d %H:%M:%S %z').astimezone().strftime("%Y%m%d") for k, v in replace_dict.items() if isinstance(v, str) and re.match(r'^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$', v)}
+                output_filename = os.path.abspath(args.output % replace_dict)
             except TypeError as e:
                 logger.debug(e)
                 output_filename = os.path.join(default_output_dir, default_output_filename)
+        elif args.batch:
+            output_filename = os.path.join(default_output_dir, default_output_filename)
         else:
-            output_filename = output_filepath_input_dialog(os.path.join(default_output_dir, default_output_filename))
-            if output_filename is None:
-                logger.info('処理をキャンセルします.')
-                sys.exit(0)
+            try:
+                output_filename = output_filepath_input_dialog(os.path.join(default_output_dir, default_output_filename))
+            except TypeError as e:
+                logger.debug(e)
+                output_filename = os.path.join(default_output_dir, default_output_filename)
 
-        if output_filename is None or output_filename == '':
+        if output_filename is None:
+            logger.warning('キャンセルされました.')
+            continue
+        elif output_filename == '':
             logger.warning('出力先ファイルパスが入力されていないため, デフォルト値を使用します.')
             output_filename = os.path.join(default_output_dir, default_output_filename)
         elif check_output_dir(output_filename):
             output_filename = os.path.join(output_filename, default_output_filename)
         elif check_output_dir(os.path.dirname(output_filename)):
-            output_filename = os.path.join(os.path.dirname(output_filename), check_output_filename(os.path.basename(output_filename)))
+            output_filename = os.path.join(os.path.dirname(output_filename), validate_output_filename(os.path.basename(output_filename)))
         else:
             logger.warning('出力先ファイルパスが正しくないため, デフォルト値を使用します.')
             output_filename = os.path.join(default_output_dir, default_output_filename)
@@ -526,14 +369,9 @@ if __name__ == "__main__":
             continue
         logger.info(f'{output_filename=}にコメントファイルを出力します.')
 
-        comment_group_id = video_info.get('data', {}).get('video_page', {}).get('video_comment_setting', {}).get('comment_group_id')
-        user_token = get_user_token(video_id)
-        comments_list = get_all_comments(user_token, comment_group_id)
-        if comments_list is None:
-            logger.error(f'{video_id=} のコメントが0件, もしくは取得できませんでした.')
-            continue
-
-        comments_tree = comments_to_tree(comments_list, comment_group_id)
+        video_obj.get_all_comments_list()
+        logger.info(f'{len(video_obj.comment_dumps)} 件のコメントを取得しました.')
+        comments_tree = comments_to_tree(video_obj.comment_dumps, video_obj.video_info_dump.get("data", {}).get("video_page", {}).get("video_comment_setting", {}).get("comment_group_id"))
         comments_file_save(comments_tree, output_filename)
 
     logger.info('処理が完了しました.')
