@@ -28,7 +28,7 @@ class SheetaVideoCommentGetter(sheeta_utils.SheetaVideo):
         if not self.video_info_dump:
             self.get_video_info()
         try:
-            user_token_request = requests.get(f"{self.site_settings.get("api_base_url")}/video_pages/{self.video_id}/comments_user_token", headers=self.base_headers, timeout=20)
+            user_token_request = requests.get(f'{self.site_settings.get("api_base_url")}/video_pages/{self.video_id}/comments_user_token', headers=self.base_headers, timeout=20)
             user_token_request.raise_for_status()
             user_token_dump = user_token_request.json()
             self.comments_user_token = user_token_dump.get("data", {}).get("access_token")
