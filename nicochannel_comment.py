@@ -233,7 +233,7 @@ def download_checkbox_dialog(video_list: list) -> list:
         text='コメントをダウンロードする動画を選択してください.',
         values=video_list,
         ).run()
-    return result
+    return [] if result is None else result
 
 def comments_to_tree(comments_list: list, comment_group_id: str) -> ET.Element:
     """コメントのリストをXMLツリーに変換します.
@@ -313,7 +313,7 @@ if __name__ == "__main__":
 
         video_obj_list = [SheetaVideoCommentGetter(f'https://{sheeta_obj.base_domain}/{sheeta_obj.channel_id + "/" if sheeta_obj.channel_id else "" }video/{video_dump.get("content_code")}') for video_dump in sheeta_obj.video_dumps]
 
-        if not all_download_confirm_dialog():
+        if not args.batch and not all_download_confirm_dialog():
             video_list_for_dialog = [
                 (
                     f'https://{sheeta_obj.base_domain}/{sheeta_obj.channel_id + "/" if sheeta_obj.channel_id else "" }video/{video_dump.get("content_code")}',
